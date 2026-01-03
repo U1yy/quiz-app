@@ -35,7 +35,7 @@ export default function LoginPage() {
     localStorage.setItem("quizAppRole", role);
 
     if (role === "instructor") {
-      navigate("/instructor-dashboard", { state: { user } });
+      navigate("/Instructor", { state: { user } });
     } else {
       navigate("/student_dashboard", { state: { user } });
     }
