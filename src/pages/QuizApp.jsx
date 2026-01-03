@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import MOCK_QUIZZES from "../data/quizzes";
+import Sidebar from './Sidebar';
 
-// Warning Modal Component
+// Warning Modal
 const WarningModal = ({ type, onClose, onBackToDashboard }) => {
   const getContent = () => {
     switch (type) {
@@ -96,14 +97,27 @@ const WarningModal = ({ type, onClose, onBackToDashboard }) => {
 };
 
 const QuizApp = () => {
-
   const location = useLocation();
   const navigate = useNavigate();
+  const hasSubmitted = useRef(false);
 
   const user =
     location.state?.user ||
     JSON.parse(localStorage.getItem("quizAppUser")) || null;
 
+  const [currentView, setCurrentView] = useState('home');
+  const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [showWarning, setShowWarning] = useState(null);
+  const [takenQuizzes, setTakenQuizzes] = useState({});
+  const [autoSubmitReason, setAutoSubmitReason] = useState(null);
+
+  // user authentication
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -111,57 +125,107 @@ const QuizApp = () => {
   }, [user, navigate]);
 
 
-  const [currentView, setCurrentView] = useState('home'); // 'home' or 'quiz'
-  const [selectedQuiz, setSelectedQuiz] = useState(null);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [tabSwitchCount, setTabSwitchCount] = useState(0);
-  const [showWarning, setShowWarning] = useState(null);
-  const [takenQuizzes, setTakenQuizzes] = useState({});
-
-  //Load taken quizzes from memory
   useEffect(() => {
-  if (!user) return;
-  const key = `takenQuizzes_${user.email}`;
-  const saved = JSON.parse(localStorage.getItem(key)) || {};
-  setTakenQuizzes(saved);
-  }, [user]);
+    if (!user) return;
+    const key = `takenQuizzes_${user.email}`;
+    const saved = JSON.parse(localStorage.getItem(key)) || {};
+    setTakenQuizzes(saved);
+  }, [user?.email]);
 
-  // Tab visibility detection
-    useEffect(() => {
-      if (currentView !== 'quiz' || quizCompleted) return;
-  
-      const handleVisibilityChange = () => {
-        if (document.hidden) {
-          setTabSwitchCount(prev => {
-            const newCount = prev + 1;
-            
-            if (newCount === 1 || newCount === 2) {
-              setShowWarning('tab-switch');
-            } else if (newCount >= 3) {
-              handleQuizComplete();
-              setShowWarning('time-up');
-            }
-            
-            return newCount;
-          });
+  useEffect(() => {
+    if (!autoSubmitReason || hasSubmitted.current || !selectedQuiz || quizCompleted) return;
+    
+    hasSubmitted.current = true;
+    setQuizCompleted(true);
+    
+    const finalAnswers = { ...answers };
+    if (selectedAnswer !== null && finalAnswers[currentQuestionIndex] === undefined) {
+      finalAnswers[currentQuestionIndex] = selectedAnswer;
+    }
+
+    let score = 0;
+    selectedQuiz.questions.forEach((q, i) => {
+      if (finalAnswers[i] === q.correctAnswer) score++;
+    });
+
+    const activity = {
+      studentEmail: user.email,
+      quizId: selectedQuiz.id,
+      quizTitle: selectedQuiz.title,
+      score,
+      total: selectedQuiz.questions.length,
+      date: new Date().toLocaleString(),
+      autoSubmitted: true,
+      submitReason: autoSubmitReason,
+      tabSwitchViolations: tabSwitchCount
+    };
+
+    const activities = JSON.parse(localStorage.getItem("quizActivities")) || [];
+    activities.push(activity);
+    localStorage.setItem("quizActivities", JSON.stringify(activities));
+
+    const key = `takenQuizzes_${user.email}`;
+    const saved = JSON.parse(localStorage.getItem(key)) || {};
+    const updated = { ...saved, [selectedQuiz.id]: true };
+    localStorage.setItem(key, JSON.stringify(updated));
+    
+    setTakenQuizzes(updated);
+    setAnswers(finalAnswers);
+  }, [autoSubmitReason]);
+
+  useEffect(() => {
+    if (currentView !== 'quiz' || quizCompleted) return;
+
+    let lastEventTime = 0;
+    const DEBOUNCE_TIME = 2000;
+
+    const registerViolation = (source) => {
+      const now = Date.now();
+      if (now - lastEventTime < DEBOUNCE_TIME) {
+        console.log('Debounced:', source);
+        return;
+      }
+      lastEventTime = now;
+
+      console.log('Violation registered from:', source);
+
+      setTabSwitchCount(prev => {
+        const next = prev + 1;
+        console.log('Tab switch count:', next); 
+
+        if (next < 3) {
+          setShowWarning('tab-switch');
+        } else {
+          setAutoSubmitReason('tab-switch');
+          setShowWarning('time-up');
         }
-      };
-  
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [currentView, quizCompleted]);
 
-  // Timer effect
+        return next;
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('Tab switched away');
+        registerViolation('visibility-change');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentView, quizCompleted]);
+
+  // timer effect
   useEffect(() => {
     if (currentView === 'quiz' && !quizCompleted && timeLeft > 0) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            handleQuizComplete();
+            setAutoSubmitReason("time-up");
+            setShowWarning("time-up");
             return 0;
           }
           return prev - 1;
@@ -179,6 +243,7 @@ const QuizApp = () => {
   };
 
   const startQuiz = (quiz) => {
+    hasSubmitted.current = false;
     setSelectedQuiz(quiz);
     setCurrentView('quiz');
     setCurrentQuestionIndex(0);
@@ -187,47 +252,78 @@ const QuizApp = () => {
     setTimeLeft(300);
     setQuizCompleted(false);
     setTabSwitchCount(0);
+    setAutoSubmitReason(null);
   };
 
-  const handleAnswerSelect = (optionIndex) => {
-    setSelectedAnswer(optionIndex);
-  };
+  const handleAnswerSelect = (index) => setSelectedAnswer(index);
 
   const handleNextQuestion = () => {
-    // Save the answer
     if (selectedAnswer !== null) {
-      setAnswers({
-        ...answers,
-        [currentQuestionIndex]: selectedAnswer
-      });
+      setAnswers((prev) => ({
+        ...prev,
+        [currentQuestionIndex]: selectedAnswer,
+      }));
     }
 
-    // Move to next question or complete quiz
     if (currentQuestionIndex < selectedQuiz.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(answers[currentQuestionIndex + 1] ?? null);
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setSelectedAnswer(null);
     } else {
       handleQuizComplete();
     }
   };
 
-  const handleQuizComplete = () => {
-  setQuizCompleted(true);
+  const handleQuizComplete = useCallback(() => {
+    if (hasSubmitted.current) return;
+    hasSubmitted.current = true;
+    
+    setQuizCompleted(true);
 
-    setTakenQuizzes(prev => {
-      const updated = { 
-        ...prev, 
-        [selectedQuiz.id]: `${selectedQuiz.code} - ${selectedQuiz.title}` 
+    setAnswers(prevAnswers => {
+      const finalAnswers = { ...prevAnswers };
+
+      if (
+        selectedAnswer !== null &&
+        finalAnswers[currentQuestionIndex] === undefined
+      ) {
+        finalAnswers[currentQuestionIndex] = selectedAnswer;
+      }
+
+      let score = 0;
+      selectedQuiz.questions.forEach((q, i) => {
+        if (finalAnswers[i] === q.correctAnswer) score++;
+      });
+
+      const activity = {
+        studentEmail: user.email,
+        quizId: selectedQuiz.id,
+        quizTitle: selectedQuiz.title,
+        score,
+        total: selectedQuiz.questions.length,
+        date: new Date().toLocaleString(),
+        autoSubmitted: false,
+        submitReason: "finished",
+        tabSwitchViolations: tabSwitchCount
       };
 
-      const key = `takenQuizzes_${user.email}`;
-      localStorage.setItem(key, JSON.stringify(updated));
+      const activities =
+        JSON.parse(localStorage.getItem("quizActivities")) || [];
+      activities.push(activity);
+      localStorage.setItem("quizActivities", JSON.stringify(activities));
 
-      return updated;
+      const key = `takenQuizzes_${user.email}`;
+      const saved = JSON.parse(localStorage.getItem(key)) || {};
+      const updated = { ...saved, [selectedQuiz.id]: true };
+      
+      localStorage.setItem(key, JSON.stringify(updated));
+      setTakenQuizzes(updated);
+
+      return finalAnswers;
     });
-  };
+  }, [selectedAnswer, currentQuestionIndex, selectedQuiz, user]);
 
   const handleBackToHome = () => {
+    hasSubmitted.current = false;
     setCurrentView('home');
     setSelectedQuiz(null);
     setCurrentQuestionIndex(0);
@@ -236,19 +332,28 @@ const QuizApp = () => {
     setQuizCompleted(false);
     setTabSwitchCount(0);
     setShowWarning(null);
+    setAutoSubmitReason(null);
   };
 
   const handleCloseWarning = () => {
     setShowWarning(null);
   };
 
-  const handleExitQuiz = () => {
-    if (currentView === 'quiz' && !quizCompleted) {
-      setShowWarning('exit-warning');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("quizAppUser");
+    navigate("/login");
   };
 
   const currentQuestion = selectedQuiz?.questions[currentQuestionIndex];
+
+  if (showWarning === "time-up") {
+    return (
+      <WarningModal
+        type="time-up"
+        onBackToDashboard={handleBackToHome}
+      />
+    );
+  }
 
   if (showWarning) {
     return (
@@ -260,155 +365,153 @@ const QuizApp = () => {
     );
   }
 
-  if (currentView === 'home') {
-    return (
-      <div className="bg-[url('/ellipse_quiz.svg')] bg-no-repeat min-h-screen bg-grey-200 pt-24">
-        <div className="max-w-4xl mx-auto">
-          <Card className="mb-8 mt-4 border-none bg-gray-50 shadow-lg">
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                    Welcome back! Let's continue your learning journey
-                  </h1>
-                  <p className="text-gray-600 text-sm">
-                    Please select your Quiz
-                  </p>
-                </div>
-                <div className="ml-8 shrink-0">
-                  <div className="w-50 h-20 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <img src="/study.png" alt="study" />
-                    </div>
-                  </div>
+  // Main layout with sidebar
+  return (
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar*/}
+      {currentView !== 'quiz' && <Sidebar user={user} onLogout={handleLogout} />}
+
+      {/* Main */}
+      <div className="flex-1 overflow-y-auto">
+        {/* QuizView */}
+        {quizCompleted && (
+          <div className="bg-[url('/quiz_bg.svg')] bg-no-repeat bg-center min-h-screen bg-gray-100 flex items-center justify-center p-8">
+            <div className="text-center max-w-2xl">
+              <div className="relative inline-flex items-center justify-center mb-8">
+                <div className="w-32 h-32 rounded-full flex items-center justify-center border-4 border-black">
+                  <img src="/check_quiz.svg" alt="check" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Quiz Cards */}
-          <div className="space-y-4">
-            {MOCK_QUIZZES.map((quiz) => (
-              <Card key={quiz.id} className="border-2 border-gray-300 shadow-md hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">Quiz Completed!</h2>
+
+              <p className="text-lg text-gray-700 mb-12 max-w-xl mx-auto">
+                Your answers have been submitted. Please wait for the instructor to release the results.
+              </p>
+
+              <Button
+                onClick={handleBackToHome}
+                className="bg-cyan-200 hover:bg-cyan-400 text-gray-900 font-medium px-12 py-4 rounded-full text-lg shadow-lg border-none"
+              >
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Home View */}
+        {currentView === 'home' && !quizCompleted && (
+          <div className="bg-[url('/ellipse_quiz.svg')] bg-no-repeat min-h-screen bg-grey-200 pt-24">
+            <div className="max-w-4xl mx-auto">
+              <Card className="mb-8 mt-4 border-none bg-gray-50 shadow-lg">
+                <CardContent>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                      <div className="text-gray-700 font-medium min-w-20">
-                        {quiz.code}
-                      </div>
-                      <div className="text-gray-800 font-medium">
-                        {quiz.title}
+                    <div className="flex-1">
+                      <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                        Welcome back! Let's continue your learning journey
+                      </h1>
+                      <p className="text-gray-600 text-sm">
+                        Please select your Quiz
+                      </p>
+                    </div>
+                    <div className="ml-8 shrink-0">
+                      <div className="w-50 h-20 rounded-lg flex items-center justify-center">
+                        <div className="text-center">
+                          <img src="/study.png" alt="study" />
+                        </div>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => {
-                        if (takenQuizzes[quiz.id]) {
-                          setShowWarning("already-taken");
-                        } else {
-                          startQuiz(quiz);
-                        }
-                      }}
-                      className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium px-6 py-2 rounded-full shadow-md"
-                    >
-                      Start Quiz
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  {/* Quiz COmpleted UI */}
-  if (quizCompleted) {
-    return (
-      <div className="bg-[url('/quiz_bg.svg')] bg-no-repeat bg-center bg-size-[50%] min-h-screen bg-gray-100 flex items-center justify-center p-8">
-        <div className="text-center max-w-2xl">
-          {/* Large circular background with checkmark */}
-          <div className="relative inline-flex items-center justify-center mb-8">
-            {/* Checkmark icon */}
-            <div className="w-32 h-32 rounded-full flex items-center justify-center border-4 border-black">
-              <img src="/check_quiz.svg" alt="check" />
+              <div className="space-y-4">
+                {MOCK_QUIZZES.map((quiz) => (
+                  <Card key={quiz.id} className="border-2 border-gray-300 shadow-md hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                          <div className="text-gray-700 font-medium min-w-20">
+                            {quiz.code}
+                          </div>
+                          <div className="text-gray-800 font-medium">
+                            {quiz.title}
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            if (takenQuizzes[quiz.id]) {
+                              setShowWarning("already-taken");
+                            } else {
+                              startQuiz(quiz);
+                            }
+                          }}
+                          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium px-6 py-2 rounded-full shadow-md"
+                        >
+                          Start Quiz
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Quiz Completed text */}
-          <h2 className="text-4xl font-bold text-gray-900 mb-6">Quiz Completed!</h2>
+        {/* Quiz View */}
+        {currentView === 'quiz' && !quizCompleted && (
+          <div className="bg-[url('/quiz_bg.svg')] bg-no-repeat bg-center bg-gray-100 min-h-screen p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex justify-between items-center mb-8">
+                <div className="bg-white px-6 py-3 rounded-full border-2 border-gray-300 shadow-md">
+                  <span className="text-2xl font-bold text-gray-800">
+                    {currentQuestionIndex + 1}/{selectedQuiz.questions.length}
+                  </span>
+                </div>
+                <div className="bg-white px-6 py-3 rounded-xl border-2 border-gray-300 shadow-md">
+                  <span className="text-2xl font-bold text-gray-800">
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+              </div>
 
-          {/* Subtitle */}
-          <p className="text-lg text-gray-700 mb-12 max-w-xl mx-auto">
-            Your answers have been submitted. Please wait for the instructor to release the results.
-          </p>
+              <Card className="border-2 border-gray-300 shadow-xl mb-8">
+                <CardContent className="p-8">
+                  <p className="text-lg text-gray-800 leading-relaxed">
+                    {currentQuestion.question}
+                  </p>
+                </CardContent>
+              </Card>
 
-          {/* Back to Dashboard button */}
-          <Button
-            onClick={handleBackToHome}
-            className="bg-cyan-200 hover:bg-cyan-400 text-gray-900 font-medium px-12 py-4 rounded-full text-lg shadow-lg border-none"
-          >
-            Back to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                {currentQuestion.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswerSelect(index)}
+                    className={`p-6 rounded-xl border-2 transition-all text-left font-medium text-gray-800 ${
+                      selectedAnswer === index
+                        ? 'border-blue-500 bg-blue-100 shadow-lg scale-105'
+                        : 'border-gray-300 bg-white hover:border-blue-300 hover:shadow-md'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
 
- {/* eto nga yung quiz UI kasi nga */}
-  return (
-    <div className="bg-[url('/quiz_bg.svg')] bg-no-repeat bg-center bg-gray-100 min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="bg-white px-6 py-3 rounded-full border-2 border-gray-300 shadow-md">
-            <span className="text-2xl font-bold text-gray-800">
-              {currentQuestionIndex + 1}/{selectedQuiz.questions.length}
-            </span>
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleNextQuestion}
+                  disabled={selectedAnswer === null}
+                  className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-gray-900 font-medium px-12 py-3 rounded-full shadow-md text-lg"
+                >
+                  {currentQuestionIndex < selectedQuiz.questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="bg-white px-6 py-3 rounded-xl border-2 border-gray-300 shadow-md">
-            <span className="text-2xl font-bold text-gray-800">
-              {formatTime(timeLeft)}
-            </span>
-          </div>
-        </div>
-
-        {/* Question Card */}
-        <Card className="border-2 border-gray-300 shadow-xl mb-8">
-          <CardContent className="p-8">
-            <p className="text-lg text-gray-800 leading-relaxed">
-              {currentQuestion.question}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Answer Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {currentQuestion.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => handleAnswerSelect(index)}
-              className={`p-6 rounded-xl border-2 transition-all text-left font-medium text-gray-800 ${
-                selectedAnswer === index
-                  ? 'border-blue-500 bg-blue-100 shadow-lg scale-105'
-                  : 'border-gray-300 bg-white hover:border-blue-300 hover:shadow-md'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-
-        {/* Next Button */}
-        <div className="flex justify-center">
-          <Button
-            onClick={handleNextQuestion}
-            disabled={selectedAnswer === null}
-            className="bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-gray-900 font-medium px-12 py-3 rounded-full shadow-md text-lg"
-          >
-            {currentQuestionIndex < selectedQuiz.questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
-          </Button>
-        </div>
+        )}
       </div>
     </div>
   );

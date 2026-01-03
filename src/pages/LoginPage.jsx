@@ -18,35 +18,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const handleLogin = () => {
-  const users = JSON.parse(localStorage.getItem("quizAppUsers")) || [];
+    const users = JSON.parse(localStorage.getItem("quizAppUsers")) || [];
 
-  const user = users.find(
-    (u) => u.email === email && u.password === password && u.role === role
-  );
+    const user = users.find(
+      (u) => u.email === email && u.password === password && u.role === role
+    );
 
-  if (!user) {
-    alert("Invalid credentials for this role!");
-    return;
-  }
+    if (!user) {
+      alert("Invalid credentials for this role!");
+      return;
+    }
 
-  alert(`Welcome back, ${user.name}!`);
-  localStorage.setItem("quizAppLoggedIn", "true");
-  localStorage.setItem("quizAppRole", role);
+    alert(`Welcome back, ${user.name}!`);
+    localStorage.setItem("quizAppUser", JSON.stringify(user));
+    localStorage.setItem("quizAppLoggedIn", "true");
+    localStorage.setItem("quizAppRole", role);
 
-  // FIX: Pass the user via navigate()
-  if (role === "instructor") {
-    navigate("/instructor-dashboard", { state: { user } });
-  } else {
-    navigate("/student_dashboard", { state: { user } });
-  }
-};
+    if (role === "instructor") {
+      navigate("/instructor-dashboard", { state: { user } });
+    } else {
+      navigate("/student_dashboard", { state: { user } });
+    }
+  };
 
-  if (!role) return null; // render nothing until redirect
+  if (!role) return null;
 
   return (
     <div className="min-h-screen w-full bg-gray-100 flex items-center justify-center relative overflow-hidden p-6">
-      <div className="absolute left-0 bottom-0">
-        <img src="/ellipse_login.png" alt="ellipse" />
+      <div className="absolute left-0">
+        <img src="/login.svg" alt="ellipse" />
       </div>
 
       <Card className="w-full max-w-200 h-[700px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">

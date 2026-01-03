@@ -5,7 +5,6 @@ export default function RoleSelection() {
   const navigate = useNavigate();
 
   const handleRoleClick = (role) => {
-    // Navigate to Sign Up or Login, passing the selected role
     navigate("/signup", { state: { role } });
   };
 
@@ -16,7 +15,8 @@ export default function RoleSelection() {
           Welcome! Choose your role.
         </h1>
         <p className="text-gray-600 text-center mb-10">
-          Pick your role so we can take you to the right quiz experience
+          QuizMaster is a web-based application designed for secure and organized online quizzes. <br /> 
+          It supports instructors in managing assessments and students in taking timed quizzes.
         </p>
 
         <div className="flex gap-10">

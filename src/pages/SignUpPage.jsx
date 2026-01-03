@@ -10,7 +10,7 @@ export default function SignUpPage() {
   const navigate = useNavigate();
   const role = location.state?.role;
 
-  // Redirect back if role is missing
+  
   useEffect(() => {
     if (!role) navigate("/role-selection");
   }, [role, navigate]);
@@ -30,16 +30,14 @@ export default function SignUpPage() {
       return;
     }
 
-    // Get existing users
     const users = JSON.parse(localStorage.getItem("quizAppUsers")) || [];
 
-    // Check if email already exists for this role
     if (users.some((u) => u.email === email && u.role === role)) {
       alert("This email is already registered for this role!");
       return;
     }
 
-    // Save new user
+   
     const newUser = { name, email, password, role };
     users.push(newUser);
     localStorage.setItem("quizAppUsers", JSON.stringify(users));
@@ -48,12 +46,12 @@ export default function SignUpPage() {
     navigate("/login", { state: { role } });
   };
 
-  if (!role) return null; // render nothing until redirect
+  if (!role) return null; 
 
   return (
     <div className="min-h-screen w-full bg-gray-100 flex items-center justify-center relative overflow-hidden p-6">
-      <div className="absolute left-0 bottom-0">
-        <img src="/ellipse_login.png" alt="ellipse" />
+      <div className="absolute left-0 ">
+        <img src="/login.svg" alt="ellipse" />
       </div>
 
       <Card className="w-full max-w-200 h-[700px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">

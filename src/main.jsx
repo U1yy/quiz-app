@@ -5,6 +5,8 @@ import RoleSelection from "./pages/RoleSelection";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import QuizApp from "./pages/QuizApp";
+import Profile from "./pages/Profile";
+import StudentResults from "./pages/StudentResults";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -14,6 +16,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/student_dashboard" element={<QuizApp />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/student-results" element={<StudentResults />} />
     </Routes>
   </BrowserRouter>
 );
