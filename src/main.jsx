@@ -7,6 +7,7 @@ import SignUpPage from "./pages/SignUpPage";
 import QuizApp from "./pages/QuizApp";
 import Profile from "./pages/Profile";
 import StudentResults from "./pages/StudentResults";
+import Instructor from "./pages/Instructor";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/student_dashboard" element={<QuizApp />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/student-results" element={<StudentResults />} />
+      <Route path="/Instructor" element={<Instructor />} />
     </Routes>
   </BrowserRouter>
 );
