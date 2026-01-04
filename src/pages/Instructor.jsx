@@ -282,7 +282,7 @@ const Instructor = () => {
               Dashboard
             </button>
             <button
-              onClick={() => navigate('/Profile', { state: { user } })}
+              onClick={() => navigate('/InstructorProfile', { state: { user } })}
               className="text-gray-600 hover:text-[#1a3a5f] transition-colors font-thin text-xl"
             >
               Profile
@@ -309,8 +309,8 @@ const Instructor = () => {
                 Welcome back! Let's continue your learning journey
               </h1>
               <p className="text-gray-600 text-base leading-relaxed max-w-xl">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus.
-                Suspendisse lectus tortor,
+                Your command center for managing quizzes reviewing submissions
+                and guiding learners with precision.
               </p>
             </div>
             <div className="shrink-0 ml-8">
