@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft } from "lucide-react";
+
 
 export default function LoginPage() {
   const location = useLocation();
@@ -51,9 +53,18 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-200 h-[700px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">
         <CardContent className="p-10">
+          <Button
+            variant="ghost"
+            className="mb-6 text-teal-600 hover:text-teal-800 flex items-center gap-2 "
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Select Role
+          </Button>
           <h2 className="text-2xl font-semibold text-teal-600 mb-2">
             {role.charAt(0).toUpperCase() + role.slice(1)} Login
           </h2>
+
           <p className="text-gray-600 text-sm mb-8">
             Please enter your Email and Password to get started!!
           </p>
