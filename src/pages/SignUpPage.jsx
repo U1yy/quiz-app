@@ -10,7 +10,6 @@ export default function SignUpPage() {
   const navigate = useNavigate();
   const role = location.state?.role;
 
-  
   useEffect(() => {
     if (!role) navigate("/role-selection");
   }, [role, navigate]);
@@ -37,7 +36,6 @@ export default function SignUpPage() {
       return;
     }
 
-   
     const newUser = { name, email, password, role };
     users.push(newUser);
     localStorage.setItem("quizAppUsers", JSON.stringify(users));
@@ -46,7 +44,7 @@ export default function SignUpPage() {
     navigate("/login", { state: { role } });
   };
 
-  if (!role) return null; 
+  if (!role) return null;
 
   return (
     <div className="min-h-screen w-full bg-gray-100 flex items-center justify-center relative overflow-hidden p-6">
@@ -54,7 +52,7 @@ export default function SignUpPage() {
         <img src="/login.svg" alt="ellipse" />
       </div>
 
-      <Card className="w-full max-w-200 h-[700px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">
+      <Card className="w-full max-w-170 h-[600px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">
         <CardContent className="p-10">
           <h2 className="text-2xl font-semibold text-teal-600 mb-2">
             {role.charAt(0).toUpperCase() + role.slice(1)} Sign Up
@@ -93,7 +91,10 @@ export default function SignUpPage() {
               checked={agree}
               onCheckedChange={(checked) => setAgree(checked)}
             />
-            <label htmlFor="terms" className="text-sm text-gray-700 cursor-pointer">
+            <label
+              htmlFor="terms"
+              className="text-sm text-gray-700 cursor-pointer"
+            >
               I agree to the Terms and Conditions
             </label>
           </div>
