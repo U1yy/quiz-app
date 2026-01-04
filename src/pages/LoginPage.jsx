@@ -51,7 +51,7 @@ export default function LoginPage() {
         <img src="/login.svg" alt="ellipse" />
       </div>
 
-      <Card className="w-full max-w-200 h-[700px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">
+      <Card className="w-full max-w-170 h-[600px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">
         <CardContent className="p-10">
           <Button
             variant="ghost"
