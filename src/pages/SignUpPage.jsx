@@ -4,13 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft } from "lucide-react";
+
 
 export default function SignUpPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const role = location.state?.role;
 
-  
+
   useEffect(() => {
     if (!role) navigate("/role-selection");
   }, [role, navigate]);
@@ -37,7 +39,7 @@ export default function SignUpPage() {
       return;
     }
 
-   
+
     const newUser = { name, email, password, role };
     users.push(newUser);
     localStorage.setItem("quizAppUsers", JSON.stringify(users));
@@ -46,7 +48,7 @@ export default function SignUpPage() {
     navigate("/login", { state: { role } });
   };
 
-  if (!role) return null; 
+  if (!role) return null;
 
   return (
     <div className="min-h-screen w-full bg-gray-100 flex items-center justify-center relative overflow-hidden p-6">
@@ -56,6 +58,14 @@ export default function SignUpPage() {
 
       <Card className="w-full max-w-200 h-[700px] z-10 border-gray-300 rounded-xl shadow-md absolute right-10">
         <CardContent className="p-10">
+          <Button
+            variant="ghost"
+            className="mb-6 text-teal-600 hover:text-teal-800 flex items-center gap-2 "
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Select Role
+          </Button>
           <h2 className="text-2xl font-semibold text-teal-600 mb-2">
             {role.charAt(0).toUpperCase() + role.slice(1)} Sign Up
           </h2>
