@@ -79,7 +79,7 @@ const Profile = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-8">Profile</h1>
 
               {/* Profile Content */}
-              <div className="flex gap-12 items-start">
+              <div className="flex gap-12 items-start bg-white/80 p-6 rounded-xl shadow-lg">
                 {/* Profile Picture */}
                 <div className="shrink-0">
                   <div className="w-72 h-72 bg-gray-200 rounded-xl border-2 border-gray-400 flex items-center justify-center overflow-hidden relative group">
@@ -155,6 +155,16 @@ const Profile = () => {
                     </label>
                     <p className="text-gray-600 text-lg">
                       {user?.role || 'Student'}
+                    </p>
+                  </div>
+
+                  {/* Course */}
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      Course:
+                    </label>
+                    <p className="text-gray-600 text-lg"> 
+                      Bachelor of Science in Computer Science
                     </p>
                   </div>
                 </div>

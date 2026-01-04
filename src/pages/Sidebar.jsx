@@ -19,8 +19,14 @@ const Sidebar = ({ user, onLogout }) => {
     <>
       <div className="w-64 h-screen bg-gray-50 border-r border-gray-200 flex flex-col">
         
-        {/* Logo */}
-        <div className="h-32 flex items-center justify-center border-b border-gray-200">
+        {/* Logo (clickable) */}
+        <div
+          onClick={() => navigate('/student_dashboard')}
+          className="h-32 flex items-center justify-center border-b border-gray-200 cursor-pointer"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/student_dashboard')}
+        >
           <img
             src="/quizmaster.svg"
             alt="Logo"
@@ -37,12 +43,14 @@ const Sidebar = ({ user, onLogout }) => {
                   onClick={() => navigate(item.path)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
                     isActive(item.path)
-                      ? 'bg-green-50 text-green-600'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-green-100 text-green-700'
+                      : 'text-gray-700 hover:bg-gray-300'
                   }`}
                 >
                   <img src={item.icon} alt={item.label} className="w-6 h-6" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-medium inline-block transition-transform duration-150 hover:scale-105">
+                    {item.label}
+                  </span>
                 </button>
               </li>
             ))}
@@ -53,7 +61,7 @@ const Sidebar = ({ user, onLogout }) => {
         <div className="p-4 border-t border-gray-200">
           <Button
             onClick={() => setShowLogoutWarning(true)}
-            className="w-full bg-red-500 hover:bg-red-600 text-gray-900 font-medium py-3 rounded-full"
+            className="w-full bg-red-400 hover:bg-red-700 text-gray-100 font-medium py-3 rounded-full"
           >
             Logout
           </Button>
