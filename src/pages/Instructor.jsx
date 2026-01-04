@@ -10,7 +10,7 @@ const Instructor = () => {
     location.state?.user ||
     JSON.parse(localStorage.getItem("quizAppUser")) || null;
 
-  // State for submissions
+  //State for submissions
   const [allSubmissions, setAllSubmissions] = useState([]);
 
   // State for notification
